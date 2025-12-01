@@ -53,7 +53,7 @@ class DataPreparator(DataProcessor):
     def write_as_parquet(pth_src,
                          pth_tgt,
                          astype_dic={},
-                         chunksize=1e8,
+                         chunksize=200_000,#1e8,
                          encoding=None,
                          sep=',',
                          src_is_multiple_parquet=False):
@@ -66,7 +66,8 @@ class DataPreparator(DataProcessor):
             return pd.read_csv(pth_src,
                                 chunksize=chunksize,
                                 encoding=encoding,
-                                sep=sep)
+                                sep=sep,
+                                low_memory=False)
         
         df_chunks = _read_chunks(pth_src, src_is_multiple_parquet)
 
@@ -74,7 +75,28 @@ class DataPreparator(DataProcessor):
         for i, df in enumerate(df_chunks):
             astype_dic = {k:v for k, v in astype_dic.items() if k in df.columns}
             df = df.astype(astype_dic)
-            table = pa.Table.from_pandas(df)
+            
+            '''# ---- FIX FOR SCHEMA MISMATCH ----
+            # Convert object columns to string
+            for col in df.columns:
+                if df[col].dtype == object:
+                    df[col] = df[col].astype("string")
+
+            # Force stable ID types across chunks
+            id_cols = ["subject_id", "hadm_id", "stay_id", "caregiver_id", "itemid"]
+            for col in id_cols:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
+
+            # ---------------------------------'''            
+            # --- FIX: enforce stable types ONLY for ID columns ---
+            id_cols = ["subject_id", "hadm_id", "stay_id", "caregiver_id", "itemid"]
+            for col in id_cols:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
+            # -----------------------------------------------------
+            
+            table = pa.Table.from_pandas(df, preserve_index=False)
             if i == 0:
                 pqwriter = pq.ParquetWriter(pth_tgt, table.schema)            
             pqwriter.write_table(table)
@@ -162,11 +184,35 @@ class DataPreparator(DataProcessor):
                     )
             return lf
         
-        def _keepvars(lf, col_variable, keepvars=None):
+        '''def _keepvars(lf, col_variable, keepvars=None):
             if keepvars is not None:
-                return lf.filter(pl.col(col_variable).is_in(keepvars))
+                # ensure no nested types
+                keepvars_clean = []
+                for x in keepvars:
+                    if isinstance(x, (list, dict, tuple)):
+                        continue   # ignore invalid entries
+                    keepvars_clean.append(str(x))
 
-            return lf
+                return lf.filter(pl.col(col_variable).cast(pl.Utf8).is_in(keepvars_clean))
+                return lf.filter(pl.col(col_variable).is_in(keepvars))
+            return lf'''
+        
+        def _keepvars(lf, col_variable, keepvars=None):
+            if keepvars is None:
+                return lf
+
+            # ---- SAFE FIX: sanitize keepvars ----
+            # Convert all keepvars to strings (safe for itemid or label)
+            keepvars_clean = (
+                [str(x) for x in keepvars
+                if x is not None and not isinstance(x, (list, dict, tuple))]
+            )
+
+            # Cast the column to Utf8 (string) and apply is_in
+            return lf.filter(
+                pl.col(col_variable).cast(pl.Utf8).is_in(keepvars_clean)
+            )
+
         
         def _expressions(col_value, cast_to_float, additional_expr):
             '''

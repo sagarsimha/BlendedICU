@@ -17,8 +17,8 @@ class blendedicuTSP(TimeseriesProcessor):
         '''
         super().__init__(dataset='blended')
         self.partiallyprocessed_ts_dir
-        #self.ts_pths = self.get_ts_pths(self.partiallyprocessed_ts_dir,
-        #                                 compute_index)
+        self.ts_pths = self.get_ts_pths(self.partiallyprocessed_ts_dir,
+                                         compute_index)
 
     
     def get_ts_pths(self, ts_dir, compute_index=False, sample=None):

@@ -5,6 +5,7 @@ import polars as pl
 from database_processing.datapreparator import DataPreparator
 from database_processing.newmedicationprocessor import NewMedicationProcessor
 
+import json
 
 class mimic4Preparator(DataPreparator):
     def __init__(self,
@@ -342,7 +343,34 @@ class mimic4Preparator(DataPreparator):
 
         keepvars = self._lab_keepvars()
 
-        keepitemids = dlabitems.filter(pl.col('label').is_in(keepvars)).select('itemid').collect()
+        #keepitemids = dlabitems.filter(pl.col('label').is_in(keepvars)).select('itemid').collect()
+        '''keepitemids = (dlabitems
+                        .filter(pl.col('label').is_in(keepvars))
+                        .select('itemid')
+                        .collect()
+                        .to_numpy()
+                        .flatten())'''
+        from functools import reduce
+        import operator
+        exprs = [
+            pl.col("label")
+                .str.to_lowercase()
+                .str.contains(v.lower(), literal=False)
+            for v in keepvars
+        ]
+        if len(exprs) == 0:
+            raise ValueError("keepvars is empty — no lab variables defined.")
+
+        filter_expr = reduce(operator.or_, exprs)
+
+        keepitemids = (
+            dlabitems
+                .filter(filter_expr)
+                .select('itemid')
+                .collect()
+                .to_numpy()
+                .flatten()
+        )
 
         self.df_lab = (labevents
                        .select('hadm_id', 'itemid', 'charttime', 'valuenum')
@@ -365,7 +393,7 @@ class mimic4Preparator(DataPreparator):
 
         self.save(self.df_lab, self.lab_savepath)
 
-    def gen_timeseries(self):
+    '''def gen_timeseries(self):
         self.get_labels(lazy=True)
         ditems = pl.scan_parquet(self.d_items_parquet_pth)
 
@@ -401,8 +429,77 @@ class mimic4Preparator(DataPreparator):
              .join(ditems.select('itemid', 'label'), on='itemid')
              .drop('itemid')
              .collect(streaming=True))
-        
-        self.save(ts, self.ts_savepath)
+    
+        self.save(ts, self.ts_savepath)'''
+    
+    def gen_timeseries(self):
+        self.get_labels(lazy=True)
+        ditems = pl.scan_parquet(self.d_items_parquet_pth)
+
+        print('o Timeseries')
+        keepvars = self._timeseries_keepvars()
+
+        keepitemids = (
+            ditems
+            .filter(pl.col('label').is_in(keepvars))
+            .select('itemid')
+            .collect()
+            .to_numpy()
+            .flatten()
+        )
+
+        chartevents = pl.scan_parquet(self.chartevents_parquet_pth)
+
+        # 1) Identify ventilator mode itemids (adjust if needed)
+        ventmode_ids = [223849]  # <- you already found this, can add more
+
+        # 2) Define mapping from mode string to numeric code
+        json_path = Path("data/mimic4_data/vent_mode_map.json")
+        with open(json_path, "r") as f:
+            ventmode_map = json.load(f)
+
+        # 3) Build base TS table: include value (for mapping) + valuenum
+        ts = (
+            chartevents
+            .select("stay_id", "charttime", "itemid", "valuenum", "value")
+            .drop_nulls(subset=["stay_id", "charttime", "itemid"])
+            .with_columns(
+                pl.col("charttime").str.to_datetime("%Y-%m-%d %H:%M:%S"),
+                pl.col("stay_id").cast(pl.Int64)
+            )
+            # 4) Overwrite valuenum ONLY for ventilator mode rows
+            .with_columns(
+                pl.when(pl.col("itemid").is_in(ventmode_ids))
+                .then(
+                    pl.col("value")
+                    .replace(ventmode_map, default=ventmode_map["unknown"])
+                    .cast(pl.Float64)            # keep numeric dtype
+                )
+                .otherwise(pl.col("valuenum"))
+                .alias("valuenum")
+            )
+            .drop("value")  # VERY IMPORTANT: no stray 'value' column in parquet
+        )
+
+        # 5) Send numeric valuenum into the harmonizer as before
+        self.df_ts = (
+            ts
+            .pipe(
+                self.pl_prepare_tstable,
+                keepvars=keepitemids,
+                col_measuretime="charttime",
+                col_intime="intime",
+                col_variable="itemid",
+                col_value="valuenum",   # back to valuenum, as in original code
+                unit_los="day"
+            )
+            .join(ditems.select("itemid", "label"), on="itemid")
+            .drop("itemid")
+            .collect(streaming=True)
+        )
+
+        self.save(self.df_ts, self.ts_savepath)
+
 
     @staticmethod
     def _lab_keepvars():

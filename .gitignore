@@ -1,5 +1,7 @@
-auxillary_files/OMOP_vocabulary/*csv
+auxillary_files/OMOP_vocabulary/*paraquet
 __pycache__/
 *pyc
 auxillary_files/medications.json
 auxillary_files/OMOP_vocabulary/
+data/
+Backup/

@@ -9,6 +9,7 @@ Approximate running time:
     * gen_* : 1min
 """
 from mimic4_preprocessing.mimic4preparator import mimic4Preparator
+import polars as pl
 
 mimic4_prep = mimic4Preparator(
     chartevents_pth='/icu/chartevents.csv.gz',                         
@@ -26,6 +27,15 @@ mimic4_prep = mimic4Preparator(
 mimic4_prep.raw_tables_to_parquet()
 
 mimic4_prep.icustays = mimic4_prep.gen_icustays()
+
+'''# Reduce icustays BEFORE everything else
+all_stays = mimic4_prep.icustays['stay_id'].unique()
+subset = all_stays.sample(n=1000)
+mimic4_prep.icustays = mimic4_prep.icustays.filter(
+    pl.col('stay_id').is_in(subset)
+)'''
+
+
 mimic4_prep.gen_labels()
 mimic4_prep.gen_flat()
 mimic4_prep.gen_medication()

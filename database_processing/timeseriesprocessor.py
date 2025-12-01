@@ -238,6 +238,17 @@ class TimeseriesProcessor(DataProcessor):
                               )
                           )
         
+        '''# Cast 'value' to float only for numeric variables to avoid
+        # Coercing categorical variables into floats.
+        numeric_vars = [k for k, v in self.col_mapping.items() if v in self.numeric_ts]
+
+        lf_wide_melted = (lf_wide
+                          .melt(['patient', 'time'])
+                          .with_columns(pl.when(pl.col('variable').is_in(numeric_vars))
+                                        .then(pl.col('value').cast(pl.Float32, strict=False))
+                                        .otherwise(pl.col('value'))
+                                        .alias('value')))'''
+        
         lf = (pl.concat([df.select(sorted(df.columns)) for df in [lf_wide_melted, lf_long]], how='vertical_relaxed')
               .with_columns(
                   pl.col('variable').replace(self.col_mapping)
@@ -329,6 +340,26 @@ class TimeseriesProcessor(DataProcessor):
               )
         
         return lf
+    
+    '''def pl_lazypivot(self, lf, index, columns, values, unique_column_names):
+        """ Pivot long-format timeseries into wide format using per-variable
+            aggregation methods defined in [self.aggregates](http://_vscodecontentref_/1).
+              """
+        def _agg_for(col):
+            method = self.aggregates.get(col, 'mean')
+            expr = values.filter(columns == col)
+            if method == 'last':
+                return expr.last().alias(col)
+            if method == 'first':
+                return expr.first().alias(col)
+            if method == 'max':
+                return expr.max().alias(col)
+            if method == 'min':
+                return expr.min().alias(col)
+            # default fallback: mean
+            return expr.mean().alias(col)
+        lf = (lf.group_by(index).agg(*(_agg_for(col) for col in unique_column_names)))
+        return lf'''
         
 
     def _cols(self):
