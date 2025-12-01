@@ -454,7 +454,7 @@ class mimic4Preparator(DataPreparator):
         ventmode_ids = [223849]  # <- you already found this, can add more
 
         # 2) Define mapping from mode string to numeric code
-        json_path = Path("data/mimic4_data/vent_mode_map.json")
+        json_path = Path("auxillary_files/user_input/vent_mode_map.json")
         with open(json_path, "r") as f:
             ventmode_map = json.load(f)
 
