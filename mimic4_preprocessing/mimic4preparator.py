@@ -180,8 +180,8 @@ class mimic4Preparator(DataPreparator):
                    .drop('subject_id',
                          'hadm_id',
                          'last_careunit',
-                         'intime',
-                         'outtime',
+                         #'intime',
+                         #'outtime',
                          'los')
                    .collect())
 
@@ -288,14 +288,27 @@ class mimic4Preparator(DataPreparator):
                               .group_by("hadm_id")
                               .agg(pl.col("hospital_expire_flag").max()))
         
+        # Load death time (dod)
+        patients = (
+            pl.scan_parquet(self.patients_parquet_pth)
+            .select(
+                "subject_id",
+                pl.col("dod").str.strptime(pl.Datetime, strict=False).alias("dod")
+            )
+        )
+        
         self.labels = (icustays.select('subject_id', 'hadm_id',
-                                       'stay_id', 'los', 'intime',
+                                       'stay_id', 'los', 'intime', 'outtime',
                                        'discharge_location', 'first_careunit')
                        
+                       .join(patients, on="subject_id", how="left")   # add death time
                        .join(hospital_mortality, on='hadm_id')
-                        .with_columns(
-                            care_site=pl.lit('Beth Israel Deaconess Medical Center')
-                            )
+                        .with_columns([
+                            pl.lit('Beth Israel Deaconess Medical Center').alias("care_site"),
+                            # compute death time relative to ICU admission
+                            (pl.col("dod") - pl.col("intime"))
+                                .alias("death_time_from_intime")
+                            ])
                         .sort('stay_id')
                         .collect())
 

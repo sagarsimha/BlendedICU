@@ -58,7 +58,11 @@ class blended_FLProcessor(FlatAndLabelsProcessor):
                     'raw_height',
                     'raw_weight',
                     'lengthofstay',
-                    'mortality'
+                    'mortality',
+
+                    'intime',
+                    'outtime',
+                    'death_time_from_intime'
                     ]
 
         labels_blended = pd.concat([*labels.values()])[keepcols]
@@ -108,7 +112,10 @@ class blended_FLProcessor(FlatAndLabelsProcessor):
                                                  'original_uniquepid': str,
                                                  'mortality': int,
                                                  'origin': str,
-                                                 'care_site': str})
+                                                 'care_site': str,
+                                                 'intime': 'datetime64[ns]',
+                                                 'outtime': 'datetime64[ns]',
+                                                 'death_time_from_intime': 'timedelta64[ns]'})
                                         .droplevel('source_dataset'))
 
         flat = labels_blended.loc[:, ['age',
