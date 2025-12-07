@@ -45,3 +45,7 @@ concept_id;blended;eicu;mimic4;mimic3;amsterdam;hirid;categories;user_min;user_m
 3016335;glasgow_coma_score_eye;;GCS - Eye Opening;GCS - Eye Opening;eyes_score;Glasgow Coma Score eye opening subscore;Score;1;4;1;last;0
 3008223;glasgow_coma_score_motor;;GCS - Verbal Response;GCS - Verbal Response;verbal_score;Glasgow Coma Score verbal response subscore;Score;1;6;1;last;0
 3009094;glasgow_coma_score_verbal;;GCS - Motor Response;GCS - Motor Response;motor_score;Glasgow Coma Score motor response subscore;Score;1;5;1;last;0
+30049219999;ventilator_mode_hamilton;Mechanical Ventilator Mode;Ventilator Mode (Hamilton);Ventilator Mode (Hamilton);Ventilatie Mode (Set);Ventilator mode;Respiratory;;;0;last;0
+30049219999;ventilator_mode_bipap;Mechanical Ventilator Mode;BiPap Mode;BiPap Mode;BVentilatie Mode (Set);Ventilator mode;Respiratory;;;0;last;0
+30090949999;pain_level;pain_level;Pain Level;pain_level;pain_level;pain_level;Score;;;1;last;0
+43539369999;O2_flow;O2 Flow;O2 Flow;O2 Flow;O2 Flow;O2 Flow;Respiratory;;;1;mean;8554x

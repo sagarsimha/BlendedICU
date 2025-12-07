@@ -41,5 +41,17 @@
     "SYNCHRON SLAVE": 40,
     "Standby": 41,
     "VOL/AC": 42,
-    "unknown": 99
+    "unknown": 99,
+
+    "nCPAP-PS": 143, 
+    "NIV-ST": 144, 
+    "VS": 145, 
+    "APV (simv)": 146, 
+    "ASV": 147,
+    "NIV": 148, 
+
+    "Not applicable": 249, 
+    "Spontaneous/Timed (S/T) (Back up)": 250,
+    "Spontaneous (S)": 251,
+    "Timed (T)": 252
 }

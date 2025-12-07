@@ -463,8 +463,8 @@ class mimic4Preparator(DataPreparator):
 
         chartevents = pl.scan_parquet(self.chartevents_parquet_pth)
 
-        # 1) Identify ventilator mode itemids (adjust if needed)
-        ventmode_ids = [223849]  # <- you already found this, can add more
+        # 1) Identify ventilator mode itemids
+        ventmode_ids = [223849, 229314, 227577]
 
         # 2) Define mapping from mode string to numeric code
         json_path = Path("auxillary_files/user_input/vent_mode_map.json")
@@ -556,7 +556,7 @@ class mimic4Preparator(DataPreparator):
                     'Inspiratory Time', 'Minute Volume Alarm - Low',
                     'Minute Volume Alarm - High', 'PEEP set',
                     'Inspired O2 Fraction',
-                    'Paw High', 'Ventilator Mode',
+                    'Paw High', 'Ventilator Mode', 'Ventilator Mode (Hamilton)', 'BiPap Mode',
                     'Arterial Blood Pressure diastolic',
                     'Heart Rate', 'Arterial Blood Pressure systolic',
                     'Arterial Blood Pressure mean', 'Respiratory Rate',
