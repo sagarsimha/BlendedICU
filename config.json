@@ -2,7 +2,7 @@
     "lower_los":{"info": "minimum length of stay (in days) for an icu stay to be included in the dataset ",
                  "value": 0},
     "upper_los":{"info": "maximum duration (in days) for the timeseries data of an icu stay. This will also clip the length of stay in the labels table.",
-                 "value": 300},
+                 "value": 10000},
     "preadm_anteriority":{"info": "Length (in days) for which pre-admission timeseries should be included",
                           "value": 0},
     "drug_exposure_time": {"info": "Duration of drug exposures (in hours) patients will be considered exposed to a drug until 'drug_exposure_time' after administration. ",
